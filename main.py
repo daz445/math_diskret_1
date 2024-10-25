@@ -1,4 +1,5 @@
 from makerGraph import Graph
+#from makerOrGraph import Graph
 
 # Пример использования
 
@@ -13,7 +14,6 @@ graph.add_edge('b', 'd', 6)
 graph.add_edge('c', 'e', 2)
 graph.add_edge('d', 'e', 1)
 
-
-k_shortest_paths = graph.yen_k_shortest_paths('a', 'e', k)
-for i, path in enumerate(k_shortest_paths):
-    print(f"Путь {i + 1}: {' -> '.join(path)}")
+k_paths = graph.yen_k_shortest_paths('a', 'e', k)
+for idx, path in enumerate(k_paths):
+    print(f"Path {idx + 1}: {' -> '.join(path)}")

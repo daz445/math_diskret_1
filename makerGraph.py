@@ -4,6 +4,7 @@ from collections import defaultdict
 class Graph:
     def __init__(self):
         self.edges = defaultdict(list)
+        
 
     def add_edge(self, u, v, weight):
         self.edges[u].append((v, weight))
