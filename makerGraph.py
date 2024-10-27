@@ -4,92 +4,99 @@ from collections import defaultdict
 class Graph:
     def __init__(self):
         self.edges = defaultdict(list)
-        
 
     def add_edge(self, u, v, weight):
         self.edges[u].append((v, weight))
         self.edges[v].append((u, weight))  # Если граф неориентированный
 
+
+class Yen:
+    def __init__(self, graph):
+        self.graph = graph
+
     def dijkstra(self, start, end):
-        queue = []
-        heapq.heappush(queue, (0, start))
-        distances = {start: 0}
-        previous_nodes = {start: None}
-
+        """Использует алгоритм Дейкстры для нахождения кратчайшего пути."""
+        queue = [(0, start, [])]  # (дистанция, текущая вершина, путь)
+        visited = set()
+        
         while queue:
-            current_distance, current_node = heapq.heappop(queue)
+            (cost, u, path) = heapq.heappop(queue)
+            if u in visited:
+                continue
+            visited.add(u)
+            path = path + [u]
 
-            if current_node == end:
-                break
+            if u == end:
+                return (cost, path)
 
-            for neighbor, weight in self.edges[current_node]:
-                distance = current_distance + weight
+            for (v, weight) in self.graph.edges[u]:
+                if v not in visited:
+                    heapq.heappush(queue, (cost + weight, v, path))
 
-                if neighbor not in distances or distance < distances[neighbor]:
-                    distances[neighbor] = distance
-                    previous_nodes[neighbor] = current_node
-                    heapq.heappush(queue, (distance, neighbor))
-
-        # Проверяем, найден ли путь
-        if end not in previous_nodes:
-            return [], float('inf')  # Возвращаем пустой путь и бесконечную дистанцию
-
-        path = []
-        while end is not None:
-            path.append(end)
-            end = previous_nodes[end]
-        path.reverse()
-        return path, distances.get(path[-1], float('inf'))
-
+        return float("inf"), []  # В случае, если нет пути
 
     def yen_k_shortest_paths(self, start, end, k):
-        # Находим первый кратчайший путь
-        first_path, _ = self.dijkstra(start, end)
-        paths = [first_path]
-        potential_paths = []
+        """Находит K кратчайших путей от start до end."""
+        # 1. Находим первый кратчайший путь
+        cost, path = self.dijkstra(start, end)
 
-        for k_index in range(1, k):
-            for i in range(len(paths[k_index - 1]) - 1):
-                spur_node = paths[k_index - 1][i]
-                root_path = paths[k_index - 1][:i + 1]
+        if cost == float("inf"):
+            return []  # Если нет доступного пути
 
-                # Удаляем все ребра, которые были использованы в предыдущих путях
-                removed_edges = []
-                for p in paths:
-                    if p[:i + 1] == root_path:
-                        u = p[i]
-                        v = p[i + 1]
-                        self.edges[u].remove((v, self.get_weight(u, v)))
+        k_shortest_paths = [(cost, path)]  # Начальный кратчайший путь
+
+        # 2. Основной цикл поиска k кратчайших путей
+        for i in range(1, k):
+            found_new_path = False
+            
+            # Проверяем все предыдущие пути
+            for j in range(len(k_shortest_paths[i - 1][1]) - 1):
+                spur_node = k_shortest_paths[i - 1][1][j]
+                removed_edges = []  # Список для восстановления рёбер
+
+                # Убираем все рёбра, которые были в предыдущих маршрутах
+                for route in k_shortest_paths:
+                    if j + 1 < len(route[1]):  # Проверка длины
+                        u = route[1][j]
+                        v = route[1][j + 1]
+                        # Удаляем ребро u -> v
+                        self.graph.edges[u] = [(n, w) for n, w in self.graph.edges[u] if n != v]
                         removed_edges.append((u, v))
 
-                spur_path, spur_distance = self.dijkstra(spur_node, end)
-                if spur_distance == float('inf'):
-                    continue  # Пропускаем итерацию, если путь не найден
-                if spur_distance < float('inf'):
-                    total_path = root_path + spur_path[1:]
-                    total_distance = sum(self.get_weight(total_path[j], total_path[j + 1]) for j in range(len(total_path) - 1))
-                    potential_paths.append((total_path, total_distance))
+                # Находим путь от spur_node до end
+                spur_cost, spur_path = self.dijkstra(spur_node, end)
 
-                # Восстанавливаем удаленные ребра
-                for u, v in removed_edges:
-                    self.edges[u].append((v, self.get_weight(u, v)))
+                if spur_cost != float("inf"):
+                    total_path = k_shortest_paths[i - 1][1][:j + 1] + spur_path
+                    
+                    # Проверка на уникальность узлов
+                    if len(set(total_path)) == len(total_path):  # Убедимся, что все узлы уникальны
+                        total_cost = k_shortest_paths[i - 1][0] + spur_cost
 
-            # Сортируем потенциальные пути по длине
-            potential_paths.sort(key=lambda x: x[1])
-            if not potential_paths:
+                        # Проверка на уникальность пути и добавление в список
+                        if (total_cost, total_path) not in k_shortest_paths:
+                            k_shortest_paths.append((total_cost, total_path))
+                            found_new_path = True  # Новый путь найден
+
+                # Восстанавливаем граф
+                for (u, v) in removed_edges:
+                    self.graph.add_edge(u, v, self.get_weight(u, v))  # Восстановление ребра
+
+            # Если не нашли новых путей, выходим из цикла
+            if not found_new_path:
                 break
 
-            # Добавляем самый короткий путь в список
-            paths.append(potential_paths[0][0])
-            potential_paths.pop(0)
+            # Сортировка и ограничение списка до k
+            k_shortest_paths = sorted(k_shortest_paths, key=lambda x: x[0])[:k]
 
-        return paths
+        return k_shortest_paths
 
     def get_weight(self, u, v):
-        for neighbor, weight in self.edges[u]:
+        """Возвращает вес ребра между узлами u и v."""
+        for neighbor, weight in self.graph.edges[u]:
             if neighbor == v:
                 return weight
-        return float('inf')
+        return float("inf")
 
 
 

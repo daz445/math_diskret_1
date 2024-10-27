@@ -1,7 +1,6 @@
-from makerGraph import Graph
+from makerGraph import Graph,Yen
 #from makerOrGraph import Graph
 
-# Пример использования
 
 #k = int(input("Введите количесвто первых простых минимальных пути: "))
 
@@ -24,6 +23,9 @@ graph.add_edge('g', 'h', 1)
 graph.add_edge('h', 'b', 3)
 graph.add_edge('h', 'f', 5)
 
-k_paths = graph.yen_k_shortest_paths('a', 'f', 3)#k)
-for idx, path in enumerate(k_paths):
-    print(f"Path {idx + 1}: {' -> '.join(path)}")
+yen = Yen(graph)
+k_paths = yen.yen_k_shortest_paths('a', 'f', 3)
+
+# Вывод результатов
+for index, (cost, path) in enumerate(k_paths, start=1):
+    print(f"Path {index}: Cost = {cost}, Route = {' -> '.join(path)}")
