@@ -1,14 +1,29 @@
-import heapq
 from collections import defaultdict
-
+import heapq
 class Graph:
     def __init__(self):
         self.edges = defaultdict(list)
 
     def add_edge(self, u, v, weight):
         self.edges[u].append((v, weight))
-        self.edges[v].append((u, weight))  # Если граф неориентированный
+        #self.edges[v].append((u, weight))   Если граф неориентированный
 
+    def dfs(self, current, destination, path, all_paths, total_weight):
+        path.append(current)  # Добавляем текущую вершину в путь
+
+        if current == destination:
+            all_paths.append((list(path), total_weight))  # Сохраняем путь и его вес
+        else:
+            for neighbor, weight in self.edges[current]:
+                if neighbor not in path:  # Проверяем, чтобы не посещать уже пройденные узлы
+                    self.dfs(neighbor, destination, path, all_paths, total_weight + weight)
+
+        path.pop()  # Убираем текущую вершину из пути при возврате
+
+    def find_all_paths(self, start, end):
+        all_paths = []
+        self.dfs(start, end, [], all_paths, 0)
+        return all_paths
 
 class Yen:
     def __init__(self, graph):
@@ -18,7 +33,7 @@ class Yen:
         """Использует алгоритм Дейкстры для нахождения кратчайшего пути."""
         queue = [(0, start, [])]  # (дистанция, текущая вершина, путь)
         visited = set()
-        
+
         while queue:
             (cost, u, path) = heapq.heappop(queue)
             if u in visited:
@@ -60,7 +75,7 @@ class Yen:
                         u = route[1][j]
                         v = route[1][j + 1]
                         # Удаляем ребро u -> v
-                        self.graph.edges[u] = [(n, w) for n, w in self.graph.edges[u] if n != v]
+                        self.graph.edges[u] = [(n, weight) for n, weight in self.graph.edges[u] if n != v]
                         removed_edges.append((u, v))
 
                 # Находим путь от spur_node до end
@@ -80,7 +95,8 @@ class Yen:
 
                 # Восстанавливаем граф
                 for (u, v) in removed_edges:
-                    self.graph.add_edge(u, v, self.get_weight(u, v))  # Восстановление ребра
+                    weight = self.get_weight(u, v)
+                    self.graph.add_edge(u, v, weight)  # Восстановление ребра
 
             # Если не нашли новых путей, выходим из цикла
             if not found_new_path:
@@ -97,6 +113,4 @@ class Yen:
             if neighbor == v:
                 return weight
         return float("inf")
-
-
 
